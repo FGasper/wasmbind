@@ -57,20 +57,26 @@ def load_string(pointer: int, *, instance: wasmer.Instance):
     # https://github.com/onsails/wasmer-as/blob/fe096b492d3c7a5f49214b76a7aff75fe6343c5f/src/lib.rs#L23
     # https://github.com/AssemblyScript/assemblyscript/blob/e79155b86b1ea29798a1d7d38dbe4a443c91310b/lib/loader/index.js#L43
 
+    mybytes = _load_type_bytes(pointer, STRING_ID, instance=instance)
+    return mybytes.decode('utf-16')
+
+def load_bytes(pointer: int, *, instance: wasmer.Instance):
+    return _load_type_bytes(pointer, ARRAYBUFFER_ID, instance=instance)
+
+def _load_type_bytes(pointer: int, need_type: int, *, instance: wasmer.Instance):
     u32 = instance.memory.uint32_view(0)
 
     datatype = u32[int((pointer + ID_OFFSET) / 4)]
-    assert datatype == STRING_ID
+    assert datatype == need_type
 
-    string_length = u32[int((pointer + SIZE_OFFSET) / 4)]
+    bytes_length = u32[int((pointer + SIZE_OFFSET) / 4)]
 
     u8 = instance.memory.uint8_view(pointer)
-    if string_length:
+    if bytes_length:
         string_bytes = u8[:string_length]
-        return bytes(string_bytes).decode('utf-16')
+        return bytes(string_bytes)
     else:
-        return ""
-
+        return b""
 
 def allocate_string(v: str, *, instance: wasmer.Instance):
     # https://github.com/AssemblyScript/assemblyscript/blob/e79155b86b1ea29798a1d7d38dbe4a443c91310b/lib/loader/index.js#L120

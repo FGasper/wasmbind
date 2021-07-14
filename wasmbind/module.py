@@ -11,7 +11,8 @@ import wasmer
 from wasmbind.low_level import ID_OFFSET, SIZE_OFFSET, REFCOUNT_OFFSET, STRING_ID, ARRAYBUFFER_ID, ARRAYBUFFERVIEW, \
     ARRAY, VAL_ALIGN_OFFSET, VAL_SIGNED, VAL_FLOAT, VAL_MANAGED, ARRAYBUFFERVIEW_BUFFER_OFFSET, \
     ARRAYBUFFERVIEW_DATASTART_OFFSET, ARRAYBUFFERVIEW_DATALENGTH_OFFSET, ARRAYBUFFERVIEW_SIZE, ARRAY_LENGTH_OFFSET, \
-    ARRAY_SIZE, load_string, get_array_view_class, allocate_string
+    ARRAY_SIZE, load_string, get_array_view_class, allocate_string, \
+    load_bytes
 
 WasmMemPointer = int
 
@@ -188,6 +189,8 @@ class AssemblyScriptModule:
             auto_detected = List
         elif type.id == STRING_ID:
             auto_detected = str
+        elif type.id == ARRAYBUFFER_ID:
+            auto_detected = bytes
         else:
             auto_detected = None
 
@@ -207,6 +210,9 @@ class AssemblyScriptModule:
 
         if isclass(as_) and issubclass(as_, str):
             return load_string(pointer, instance=self.instance)
+
+        if isclass(as_) and issubclass(as_, bytes):
+            return load_bytes(pointer, instance=self.instance)
 
         raise ValueError("Unsupported _as: " + str(as_))
 
@@ -450,8 +456,16 @@ class Module(AssemblyScriptModule):
     def __init__(self, instance: wasmer.Instance):
         AssemblyScriptModule.__init__(self, instance)
 
+        my_iter = iter(instance.exports)
+        print( next(my_iter) )
+
         # The only way to get those from wasmer-ext.
-        export_names = json.loads(str(instance.exports))
+        exports_str = str(instance.exports)
+        for attr, value in instance.exports.__dict__.items():
+            print(attr, value)
+        print(instance.exports)
+        print(exports_str)
+        export_names = json.loads(exports_str)
 
         classdict = {}
 
